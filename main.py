@@ -50,13 +50,13 @@ def extractROI(img, dfg, pc):
 
     unitLen = math.sqrt(np.square(x2 - x1) + np.square(y2 - y1))
 
-    k1 = (y1 - y2) / (x1 - x2)  # line AB
+    k1 = (y1 - y2) / (x1 - x2 + 1e-5)  # line AB
     b1 = y1 - k1 * x1
 
     k2 = (-1) / k1
     b2 = y3 - k2 * x3
 
-    tmpX = (b2 - b1) / (k1 - k2)
+    tmpX = (b2 - b1) / (k1 - k2 + 1e-5)
     tmpY = k1 * tmpX + b1
 
     vec = [x3 - tmpX, y3 - tmpY]
@@ -169,14 +169,25 @@ def register():
     img = cv.imdecode(np.frombuffer(im_bytes, np.uint8), cv.IMREAD_COLOR)
 
     dfg = [
-        [request.form["dfgx1"], request.form["dfgy1"]],
-        [request.form["dfgx2"], request.form["dfgy2"]]
+        [int(request.form["dfgx1"]), int(request.form["dfgy1"])],
+        [int(request.form["dfgx2"]), int(request.form["dfgy2"])]
     ]
     pc = [
-        [request.form["pcx"], request.form["pcy"]]
+        [int(request.form["pcx"]), int(request.form["pcy"])]
     ]
     name = request.form["name"]
     LorR = request.form["LorR"]
+
+    if dfg[0][1] > pc[0][1] and dfg[1][1] > pc[0][1]:
+        img_center_x = int(img.shape[1] / 2)
+        img_center_y = int(img.shape[0] / 2)
+        dfg[0][0] = img_center_x + img_center_x - dfg[0][0]
+        dfg[1][0] = img_center_x + img_center_x - dfg[1][0]
+        dfg[0][1] = img_center_y + img_center_y - dfg[0][1]
+        dfg[1][1] = img_center_y + img_center_y - dfg[1][1]
+        pc[0][0] = img_center_x + img_center_x - pc[0][0]
+        pc[0][1] = img_center_y + img_center_y - pc[0][1]
+        img = cv.flip(img, -1)
 
     save_ROI(img, dfg, pc, name, LorR)
     return("success!")
