@@ -1,7 +1,6 @@
 import numpy as np
-import imageio
-
 import torch
+
 class LFW(object):
     def __init__(self, imgl, imgr,transform=None):
         self.imgl_list = imgl
@@ -9,13 +8,13 @@ class LFW(object):
         self.transform = transform
 
     def __getitem__(self, index):
-        imgl = imageio.imread(self.imgl_list[index])
+        imgl = self.imgl_list[index]
         if self.transform is not None:
             aug = self.transform(image=imgl)
             imgl = aug["image"]
         if len(imgl.shape) == 2:
             imgl = np.stack([imgl] * 3, 2)
-        imgr = imageio.imread(self.imgr_list[index])
+        imgr = self.imgr_list[index]
         if self.transform is not None:
             aug = self.transform(image=imgr)
             imgr = aug["image"]
@@ -31,6 +30,5 @@ class LFW(object):
         return imgs
 
     def __len__(self):
-        return len(self.imgl_list)
-
+        return 1
 
