@@ -131,16 +131,17 @@ def detect_two_image(dir1, dir2, net):  # 预测两个掌纹是否一致，输�
 
 
 def save_ROI(img, dfg, pc, name, LorR):  # 输入一张图片和yolo预测，人名，左手/右手，将其转换为ROI并保存到数据库中
+
     ROI = extractROI(img, dfg, pc)
     if os.path.exists(os.path.join("database", name + "_" + LorR)):
         imdir = os.listdir(os.path.join("database", name + "_" + LorR))
-        cv.imwrite(os.path.join("database", name + "_" + LorR, str(len(imdir) + 1) + "_ROI.jpg"), ROI)
+        cv.imencode('.jpg', ROI)[1].tofile(os.path.join("database", name + "_" + LorR, str(len(imdir) + 1) + "_ROI.jpg"))
         img_list[img_name_list.index(name + "_" + LorR)].append(imageio.imread(os.path.join("database", name + "_" + LorR, str(len(imdir) + 1) + "_ROI.jpg")))
     else:
         os.mkdir(os.path.join("database", name + "_" + LorR))
-        cv.imwrite(os.path.join("database", name + "_" + LorR, "1_ROI.jpg"), ROI)
-        img_name_list.insert(0, name)
+        cv.imencode('.jpg', ROI)[1].tofile(os.path.join("database", name + "_" + LorR, "1_ROI.jpg"))
         temp = [imageio.imread(os.path.join("database", name + "_" + LorR, "1_ROI.jpg"))]
+        img_name_list.insert(0, name+ "_" + LorR)
         img_list.insert(0, temp)
 
 
@@ -151,9 +152,20 @@ def compare_to_database(img, dfg, pc, net):  # 输入一张图片和yolo预测�
         imlist = img_list[i]
         num_im = len(imlist)
         correct = 0
+        remember = 0
+        num = 0
         for im in imlist:
+            num = num + 1
             if detect_two_image(im, img_ROI, net):
+                remember = remember+1
                 correct = correct + 1
+            else:
+                remember = 0
+            if remember == 3:
+                return img_name_list[i]
+            if num == 3 and correct == 0:
+                break
+
         if correct / num_im >= 0.75:
             print("match:" + img_name_list[i])
             return img_name_list[i]
@@ -192,7 +204,7 @@ def register():
         pc[0][0] = img_center_x + img_center_x - pc[0][0]
         pc[0][1] = img_center_y + img_center_y - pc[0][1]
         img = cv.flip(img, -1)
-
+    print("name:"+name)
     save_ROI(img, dfg, pc, name, LorR)
     result = {"success": True}
     return jsonify(result)
@@ -225,7 +237,7 @@ def detect():
         dfg[1][1] = img_center_y + img_center_y - dfg[1][1]
         pc[0][0] = img_center_x + img_center_x - pc[0][0]
         pc[0][1] = img_center_y + img_center_y - pc[0][1]
-        img = cv.flip(img, -1)   
+        img = cv.flip(img, -1)
     res = compare_to_database(img, dfg, pc, net)
 
     result = {'match': None, 'person': None, 'LorR': None}
